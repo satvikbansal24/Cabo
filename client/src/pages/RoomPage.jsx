@@ -3,11 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
 import Lobby from '../components/Lobby.jsx';
-import PeekPanel from '../components/PeekPanel.jsx';
 import GameBoard from '../components/GameBoard.jsx';
 import RoundEndPanel from '../components/RoundEndPanel.jsx';
 import GameEndPanel from '../components/GameEndPanel.jsx';
 import PeekToast from '../components/PeekToast.jsx';
+import RulesModal from '../components/RulesModal.jsx';
 
 let toastSeq = 1;
 
@@ -21,6 +21,9 @@ export default function RoomPage() {
   const [game, setGame] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [myDrawnCard, setMyDrawnCard] = useState(null);
+  const [myPeekCards, setMyPeekCards] = useState({});
+  const [recentPenalty, setRecentPenalty] = useState(null);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [error, setError] = useState('');
 
   const addToast = useCallback((label, card) => {
@@ -49,18 +52,32 @@ export default function RoomPage() {
     }
     function onGameState(g) {
       setGame(g);
-      if (!(g.phase === 'turn-awaiting-decision' && g.awaitingDecisionPlayerId === user.id)) {
+      if (!(g.phase === 'turn-awaiting-play' && g.awaitingPlayPlayerId === user.id)) {
         setMyDrawnCard(null);
+      }
+      if (g.phase !== 'peek') {
+        setMyPeekCards({});
       }
     }
     function onPrivate(msg) {
       if (msg.type === 'drawn') {
         setMyDrawnCard({ card: msg.card, source: msg.source });
       } else if (msg.type === 'initial-peek') {
-        msg.cards.forEach((c) => addToast(`Your card #${c.index + 1}`, c.card));
+        setMyPeekCards((prev) => {
+          const next = { ...prev };
+          msg.cards.forEach((c) => { next[c.index] = c.card; });
+          return next;
+        });
       } else if (msg.type === 'power-peek') {
         const who = msg.playerId === user.id ? 'Your' : nameFor(msg.playerId);
         addToast(`${who} card #${msg.index + 1}`, msg.card);
+      }
+    }
+    function onMatchResult(m) {
+      if (!m.correct && typeof m.penaltyIndex === 'number') {
+        const id = Date.now();
+        setRecentPenalty({ playerId: m.playerId, index: m.penaltyIndex, id });
+        setTimeout(() => setRecentPenalty((cur) => (cur?.id === id ? null : cur)), 4000);
       }
     }
     function onErr(e) {
@@ -76,12 +93,14 @@ export default function RoomPage() {
     socket.on('room:update', onRoomUpdate);
     socket.on('game:state', onGameState);
     socket.on('game:private', onPrivate);
+    socket.on('game:matchResult', onMatchResult);
     socket.on('error', onErr);
 
     return () => {
       socket.off('room:update', onRoomUpdate);
       socket.off('game:state', onGameState);
       socket.off('game:private', onPrivate);
+      socket.off('game:matchResult', onMatchResult);
       socket.off('error', onErr);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -100,6 +119,7 @@ export default function RoomPage() {
         <div className="topbar-right">
           <span>Room {room.code}</span>
           <span>Hi, {user.username}</span>
+          <button className="link-btn" onClick={() => setRulesOpen(true)}>Rules</button>
           <button className="link-btn" onClick={() => { socket.emit('room:leave', { code }); navigate('/'); }}>
             Leave
           </button>
@@ -108,15 +128,21 @@ export default function RoomPage() {
       </header>
 
       <PeekToast toasts={toasts} onDismiss={dismissToast} />
+      {rulesOpen && <RulesModal onClose={() => setRulesOpen(false)} />}
 
       {!showGame && <Lobby room={room} isHost={isHost} socket={socket} />}
 
-      {showGame && game.phase === 'peek' && (
-        <PeekPanel game={game} myId={user.id} socket={socket} code={code} iAmReady={game.peekReady.includes(user.id)} />
-      )}
-
-      {showGame && !['peek', 'round-end', 'game-end'].includes(game.phase) && (
-        <GameBoard game={game} myId={user.id} hostId={room.hostId} socket={socket} code={code} myDrawnCard={myDrawnCard} />
+      {showGame && !['round-end', 'game-end'].includes(game.phase) && (
+        <GameBoard
+          game={game}
+          myId={user.id}
+          socket={socket}
+          code={code}
+          myDrawnCard={myDrawnCard}
+          myPeekCards={myPeekCards}
+          recentPenalty={recentPenalty}
+          onOpenRules={() => setRulesOpen(true)}
+        />
       )}
 
       {showGame && game.phase === 'round-end' && (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useSocket } from '../context/SocketContext.jsx';
 
@@ -41,6 +41,7 @@ export default function Dashboard() {
         <h1>🃏 Cabo</h1>
         <div className="topbar-right">
           <span>Hi, {user.username}</span>
+          <Link to="/rules"><button className="link-btn">Rules</button></Link>
           <button className="link-btn" onClick={logout}>
             Log out
           </button>

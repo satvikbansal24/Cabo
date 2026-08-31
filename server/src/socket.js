@@ -114,14 +114,11 @@ export function attachSocket(httpServer, corsOrigin) {
     socket.on('game:drawDiscard', ({ code } = {}, ack) =>
       withGame(code, (g) => g.drawDiscard(user.id), ack));
 
-    socket.on('game:callCabo', ({ code } = {}, ack) =>
-      withGame(code, (g) => g.callCabo(user.id), ack));
+    socket.on('game:playDrawnCard', ({ code } = {}, ack) =>
+      withGame(code, (g) => g.playDrawnCard(user.id), ack));
 
-    socket.on('game:swap', ({ code, handIndex } = {}, ack) =>
-      withGame(code, (g) => g.swap(user.id, handIndex), ack));
-
-    socket.on('game:discardDrawn', ({ code } = {}, ack) =>
-      withGame(code, (g) => g.discardDrawn(user.id), ack));
+    socket.on('game:keepAndSwap', ({ code, handIndex } = {}, ack) =>
+      withGame(code, (g) => g.keepAndSwap(user.id, handIndex), ack));
 
     socket.on('game:usePower', ({ code, payload } = {}, ack) =>
       withGame(code, (g) => g.usePower(user.id, payload), ack));
@@ -129,8 +126,14 @@ export function attachSocket(httpServer, corsOrigin) {
     socket.on('game:skipPower', ({ code } = {}, ack) =>
       withGame(code, (g) => g.skipPower(user.id), ack));
 
-    socket.on('game:matchAttempt', ({ code, handIndex } = {}, ack) =>
-      withGame(code, (g) => g.matchAttempt(user.id, handIndex), ack));
+    socket.on('game:matchAttempt', ({ code, payload } = {}, ack) =>
+      withGame(code, (g) => g.matchAttempt(user.id, payload), ack));
+
+    socket.on('game:endTurn', ({ code } = {}, ack) =>
+      withGame(code, (g) => g.endTurn(user.id), ack));
+
+    socket.on('game:callCabo', ({ code } = {}, ack) =>
+      withGame(code, (g) => g.callCabo(user.id), ack));
 
     socket.on('game:nextRound', ({ code } = {}, ack) =>
       withGame(code, (g) => g.nextRound(user.id), ack));

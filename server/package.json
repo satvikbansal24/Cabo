@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "smoke-test": "node scripts/smoke-test.mjs"
+    "smoke-test": "node scripts/smoke-test.mjs",
+    "engine-test": "node scripts/engine-test.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

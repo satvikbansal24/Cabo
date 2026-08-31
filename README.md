@@ -25,7 +25,9 @@ npm run build                # builds the client into client/dist
 npm start                    # server serves the API, sockets, and the built client on one port
 ```
 
-### Smoke test
+### Tests
+
+`npm run engine-test -w server` runs a deterministic unit test of the rules engine (matching, powers, Cabo-lock, scoring) with no server needed.
 
 With the server running, `npm run smoke-test -w server` drives two simulated players through registering, creating/joining a room, playing a full round, calling Cabo, and scoring, over real sockets.
 
@@ -45,26 +47,26 @@ Any other Node-friendly host (Railway, Fly.io, a VPS) works the same way: `npm i
 
 ## Rules as implemented
 
-The original source article wasn't reachable from this environment (network egress restrictions), so the ruleset below was reconstructed from multiple secondary sources describing the same game and implemented as the app's authoritative rules. If it drifts from the house rules you're used to, treat this section as the spec to tweak.
+The ruleset below follows a house "Cabo 101" rules sheet exactly (deck, powers, matching, and scoring). It's also available in the app itself — the **Rules** link on the dashboard and inside any room.
 
-- Standard 52-card deck, no jokers. Each player gets 4 face-down cards; at the start of a round you privately see your two cards closest to you (positions 3 and 4) and must remember them.
-- Card values: A=1, 2–10 face value, J=11, Q=12, red K=-1, black K=13. Lower total is better.
-- Card powers (only usable if you drew the card from the draw pile and chose to discard it immediately, rather than swapping it into your hand):
+- 52-card deck plus both Jokers. Each player gets 4 face-down cards in a 2×2 grid; at the start of a round you privately see your bottom two cards, shown face-up right in your own grid, then flip back down once everyone clicks ready.
+- Card values: Joker=-1, King=0 (any suit), Ace=1, 2–10 face value, J=11, Q=12. Lower total is better.
+- On your turn: draw from the deck or the discard pile (discard only if the last played card wasn't matched), then either play the drawn card face-up (only if it came from the deck) or keep it and slot it into one of your own positions, sending the displaced card to the discard pile blind.
+- **Powers** (only triggered by drawing from the deck and choosing to play that card, never by keeping it):
   - **7 or 8** — peek at one of your own cards.
   - **9 or 10** — peek at one opponent's card.
-  - **J or Q** — blindly swap any two cards on the table (yours, an opponent's, or one of each) without looking at either.
-- On your turn: draw from the deck (then swap it into your hand or discard it to use its power) or take the top discard card (must be swapped straight into your hand, no power). Swapping always sends your old card face-up to the discard pile.
-- **Matching**: any time nobody is mid-turn, any player may try to discard one of their own cards that they believe matches the rank on top of the discard pile. Correct — the card is gone, leaving an empty slot (worth 0). Wrong — the card returns face-down and you draw a penalty card.
-- **Calling Cabo**: on your turn, instead of drawing, you can call Cabo. Everyone else gets exactly one more turn, then all hands are revealed. If the caller doesn't have the strictly lowest hand total, they take a 5-point penalty.
-- Round scores accumulate across rounds until a player reaches the room's target score (default 100); the player with the lowest total then wins the game.
-
-Simplifications from some house rules: the match-discard action only targets your own cards (not "dumping" a card onto an opponent by matching one of theirs), and Kings don't carry a look-and-swap power beyond their point value.
+  - **Jack** — blind swap: swap any two cards on the table, unseen.
+  - **Queen** — look & swap: peek at one of your own cards and one of an opponent's, then you *must* swap any one of your cards with any one of theirs.
+- **Matching**: the instant any card is played, everyone (including whoever just played it) can race to match it — first to attempt wins the window, whether against their own card or by taking an opponent's card and blindly giving one of their own in exchange. Guess wrong either way and you draw an unseen penalty card. If someone empties their hand this way before Cabo is called, the round ends immediately.
+- **Calling Cabo**: at the end of your turn, call Cabo if you think you have the lowest total. Everyone else gets exactly one final turn, then all hands are revealed. Your cards lock immediately — no one (including you) can match, peek, or swap them anymore. A tie for lowest still counts as a loss for the caller.
+- **Scoring** (accumulates across rounds to the room's target score): if the caller wins outright, they score -30 and everyone else scores their hand total; if the caller loses, they score +30, the lowest hand(s) split -30, and everyone else scores their hand total. A round ended by an empty hand (no Cabo call) splits -30 among the lowest hand(s) the same way. Lowest cumulative total when someone crosses the target wins the game.
 
 ## How the app maps to those rules
 
 - **Login**: username + password, hashed with bcrypt, JWT-based sessions.
 - **Rooms**: any logged-in player can create a room and gets a 5-character code to share; anyone with the code can join the lobby. The host starts the game once at least 2 players are in.
-- **Hidden information**: the server is authoritative and only privately reveals a card's value to a socket when the rules say that player would see it (initial peek, a power peek, or your own freshly-drawn card). The UI shows these as a dismissible toast — the app deliberately does *not* keep your peeked cards visible, since remembering them is the point of the game.
+- **Hidden information**: the server is authoritative and only privately reveals a card's value to a socket when the rules say that player would see it (initial peek, a power peek, or your own freshly-drawn card). Outside the initial peek, reveals show as a dismissible toast — the app deliberately does *not* keep your peeked cards visible, since remembering them is the point of the game.
+- **Matching's first-to-react race**: match attempts are resolved in the exact order the server receives them — whoever's click arrives first wins the window, mirroring the physical "whoever grabs it first" rule (down to ordinary network latency being the tiebreaker on a true simultaneous tap, same as any real-time multiplayer app).
 - **Reconnects**: if you drop connection mid-game, rejoining the same room with the same account reattaches you to your seat.
 
 ## Project layout

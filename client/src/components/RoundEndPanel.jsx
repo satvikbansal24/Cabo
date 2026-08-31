@@ -5,18 +5,21 @@ export default function RoundEndPanel({ game, isHost, socket, code }) {
   return (
     <div className="overlay-panel">
       <h2>Round {game.round} results</h2>
-      {game.caboCalledBy && (
+      {game.caboCalledBy ? (
         <p>
           Cabo called by <strong>{game.players.find((p) => p.id === game.caboCalledBy)?.name}</strong>
         </p>
+      ) : (
+        game.endedByEmptyHand && <p>Round ended — a player emptied their hand before Cabo was called.</p>
       )}
       <table className="score-table">
         <thead>
           <tr>
             <th>Player</th>
             <th>Hand</th>
+            <th>Hand total</th>
             <th>Round score</th>
-            <th>Total</th>
+            <th>Overall total</th>
           </tr>
         </thead>
         <tbody>
@@ -30,6 +33,7 @@ export default function RoundEndPanel({ game, isHost, socket, code }) {
                   ))}
                 </div>
               </td>
+              <td>{game.roundHandTotals?.[p.id]}</td>
               <td>{game.lastRoundScores?.[p.id]}</td>
               <td>{game.totalScores[p.id]}</td>
             </tr>

@@ -103,23 +103,24 @@ async function main() {
     const actorSocket = actorId === alice.user.id ? sAlice : sBob;
     const actorArr = actorId === alice.user.id ? stateAlice : stateBob;
 
+    await emit(actorSocket, 'game:drawDeck', { code });
+    const playState = actorArr[actorArr.length - 1];
+    if (playState.phase !== 'turn-awaiting-play') throw new Error('expected turn-awaiting-play phase, got ' + playState.phase);
+
+    await emit(actorSocket, 'game:keepAndSwap', { code, handIndex: 0 });
+    const endState = actorArr[actorArr.length - 1];
+    if (endState.phase !== 'turn-end') throw new Error('expected turn-end phase, got ' + endState.phase);
+
     if (!caboCalled && round === 3) {
       await emit(actorSocket, 'game:callCabo', { code });
-      const s = actorArr[actorArr.length - 1];
       caboCalled = true;
-      latestPhase = s.phase;
-      latestTurn = s.turnPlayerId;
-      console.log('cabo called by', s.caboCalledBy, 'now phase', s.phase, 'next turn', s.turnPlayerId);
-      continue;
+    } else {
+      await emit(actorSocket, 'game:endTurn', { code });
     }
-
-    await emit(actorSocket, 'game:drawDeck', { code });
-    const decisionState = actorArr[actorArr.length - 1];
-    if (decisionState.phase !== 'turn-awaiting-decision') throw new Error('expected decision phase, got ' + decisionState.phase);
-    await emit(actorSocket, 'game:swap', { code, handIndex: 0 });
     const s = actorArr[actorArr.length - 1];
     latestPhase = s.phase;
     latestTurn = s.turnPlayerId;
+    if (caboCalled && round === 3) console.log('cabo called by', s.caboCalledBy, 'now phase', s.phase, 'next turn', s.turnPlayerId);
   }
 
   const finalState = stateAlice[stateAlice.length - 1];
