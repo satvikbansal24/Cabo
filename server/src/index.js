@@ -9,7 +9,11 @@ import { attachSocket } from './socket.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3001;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
+// Only needed when the client is served from a different origin than the API
+// (e.g. local dev with separate Vite/Express ports). When the client is
+// served by this same process (the production build), requests are
+// same-origin and this can be left unset.
+const CORS_ORIGIN = process.env.CORS_ORIGIN || true;
 
 const app = express();
 app.use(cors({ origin: CORS_ORIGIN, credentials: true }));

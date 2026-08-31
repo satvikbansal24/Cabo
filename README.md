@@ -29,6 +29,20 @@ npm start                    # server serves the API, sockets, and the built cli
 
 With the server running, `npm run smoke-test -w server` drives two simulated players through registering, creating/joining a room, playing a full round, calling Cabo, and scoring, over real sockets.
 
+## Deploying (so you can open it on your phone)
+
+This runs as one Node process (API + Socket.IO + the built client all on one port), which fits comfortably on a free host. [Render](https://render.com) is the easiest option:
+
+1. Push this repo to GitHub (already done if you're reading this from the repo).
+2. On Render: **New +** → **Blueprint**, point it at this repo. It will pick up `render.yaml` at the root and configure the build (`npm install && npm run build`) and start (`npm start`) commands, plus generate a random `JWT_SECRET` for you automatically.
+3. Deploy. Render gives you a public HTTPS URL (`https://<your-app>.onrender.com`) — open that on your phone.
+
+No `CORS_ORIGIN` env var is needed for this setup since the client is served from the same origin as the API.
+
+**Caveat**: accounts are stored in a JSON file on disk (`server/data/users.json`). Render's free tier has an ephemeral filesystem, so a redeploy or restart wipes registered accounts (in-progress games are already in-memory-only and don't survive restarts either). Fine for casual play; if you want accounts to persist long-term, add a Render persistent disk mounted at `server/data`, or swap in a real database — ask and I can wire that up.
+
+Any other Node-friendly host (Railway, Fly.io, a VPS) works the same way: `npm install && npm run build` to build, `npm start` to run, with `PORT` and `JWT_SECRET` as env vars.
+
 ## Rules as implemented
 
 The original source article wasn't reachable from this environment (network egress restrictions), so the ruleset below was reconstructed from multiple secondary sources describing the same game and implemented as the app's authoritative rules. If it drifts from the house rules you're used to, treat this section as the spec to tweak.
