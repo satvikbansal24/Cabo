@@ -1,0 +1,29 @@
+{
+  "name": "passport",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A team clue-giving party game whose card deck adapts to where the players are from.",
+  "scripts": {
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "vite",
+    "dev": "concurrently -n server,client -c blue,green \"npm:dev:server\" \"npm:dev:client\"",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "test": "node scripts/game-test.mjs",
+    "smoke-test": "node scripts/smoke-test.mjs"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^9.1.0",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io-client": "^4.7.5",
+    "vite": "^5.4.8"
+  }
+}
